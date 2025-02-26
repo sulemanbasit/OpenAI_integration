@@ -6,7 +6,9 @@ import pyaudio
 from vosk import Model, KaldiRecognizer
 
 # ✅ Load Optimized Vosk Model (Ensure it's downloaded)
-MODEL_PATH = "vosk-model-small-en-us-0.15"
+# MODEL_PATH = "vosk-model-small-en-us-0.15" # 50MB
+MODEL_PATH = "vosk-model-en-us-0.22" # 1.9GB
+
 if not os.path.exists(MODEL_PATH):
     print("❌ Error: Vosk model not found! Please download it.")
     exit(1)
