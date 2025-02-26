@@ -1,38 +1,41 @@
-# Using stt_env
-# Python 3.9 recommended for vosk
+import pyaudio
+print("PyAudio installed successfully!")
 
-import wave
-import json
-from vosk import Model, KaldiRecognizer
-import os
-import subprocess
-from pathlib import Path
-import time
+# # Using stt_env
+# # Python 3.9 recommended for vosk
 
-# Main Program
-# Load Vosk model
-model_path = "vosk-model-small-en-us-0.15"
-model = Model(model_path)
+# import wave
+# import json
+# from vosk import Model, KaldiRecognizer
+# import os
+# import subprocess
+# from pathlib import Path
+# import time
 
-start_time = time.time()  # Record the start time
+# # Main Program
+# # Load Vosk model
+# model_path = "vosk-model-small-en-us-0.15"
+# model = Model(model_path)
 
-# Open WAV file (Ensure it's 16kHz)
-audio_file = "Test2.wav"
-wf = wave.open(audio_file, "rb")
+# start_time = time.time()  # Record the start time
 
-rec = KaldiRecognizer(model, 16000)
+# # Open WAV file (Ensure it's 16kHz)
+# audio_file = "Test2.wav"
+# wf = wave.open(audio_file, "rb")
 
-print("Starting transcription...")
-while True:
-    data = wf.readframes(1000)
-    if len(data) == 0:
-        break
-    rec.AcceptWaveform(data)
+# rec = KaldiRecognizer(model, 16000)
 
-transcript = json.loads(rec.FinalResult())["text"]
-print("Transcription:", transcript)
+# print("Starting transcription...")
+# while True:
+#     data = wf.readframes(1000)
+#     if len(data) == 0:
+#         break
+#     rec.AcceptWaveform(data)
 
-end_time = time.time()  # Record the end time
-execution_time = end_time - start_time  # Calculate elapsed time
+# transcript = json.loads(rec.FinalResult())["text"]
+# print("Transcription:", transcript)
 
-print(f"Total time: {execution_time}")
+# end_time = time.time()  # Record the end time
+# execution_time = end_time - start_time  # Calculate elapsed time
+
+# print(f"Total time: {execution_time}")
