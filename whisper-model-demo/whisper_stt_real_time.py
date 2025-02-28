@@ -1,70 +1,70 @@
-import os
-import time
-import json
-import queue
+import whisper
 import pyaudio
-from vosk import Model, KaldiRecognizer
+import numpy as np
+import torch
+import time
 
-# ✅ Load Optimized Vosk Model (Ensure it's downloaded)
-# MODEL_PATH = "vosk-model-small-en-us-0.15" # 50MB
-MODEL_PATH = "vosk-model-en-us-0.22" # 1.9GB
+# Load Whisper model (medium is a good balance of speed and accuracy)
+model = whisper.load_model("medium")
 
-if not os.path.exists(MODEL_PATH):
-    print("❌ Error: Vosk model not found! Please download it.")
-    exit(1)
-
-model = Model(MODEL_PATH)
-recognizer = KaldiRecognizer(model, 16000)
-
-# ✅ Configure Audio Stream for Low Latency
+# Audio Recording Parameters
 FORMAT = pyaudio.paInt16  # 16-bit audio
 CHANNELS = 1              # Mono audio
-RATE = 16000              # 16kHz (optimized for Vosk)
-CHUNK = 2000              # Smaller chunk size (reduces latency)
-audio_queue = queue.Queue()
+RATE = 16000              # Sample rate (Whisper uses 16kHz)
+CHUNK = 1024              # Buffer size
 
-# ✅ Initialize PyAudio
-p = pyaudio.PyAudio()
+# Initialize PyAudio
+audio = pyaudio.PyAudio()
 
-def callback(in_data, frame_count, time_info, status):
-    """Callback function for real-time audio processing."""
-    audio_queue.put(in_data)
-    return (in_data, pyaudio.paContinue)
+# Start Recording from Microphone
+stream = audio.open(format=FORMAT, channels=CHANNELS,
+                    rate=RATE, input=True,
+                    frames_per_buffer=CHUNK)
 
-# ✅ Start the Microphone Stream
-stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True,
-                frames_per_buffer=CHUNK, stream_callback=callback)
+print("🎙️ Speak now... Press Ctrl+C to stop.")
 
-print("🎙️ Listening... Speak into the microphone.")
+def record_audio():
+    """ Capture audio from the microphone and return as a numpy array. """
+    frames = []
+    start_time = time.time()
+    
+    # Capture for 3 seconds
+    while time.time() - start_time < 3:
+        data = stream.read(CHUNK)
+        frames.append(np.frombuffer(data, dtype=np.int16))
 
-stream.start_stream()
+    # Convert to numpy array
+    audio_data = np.concatenate(frames, axis=0).astype(np.float32)
+    audio_data /= np.max(np.abs(audio_data))  # Normalize audio
+    return audio_data
 
 try:
-    start_time = None  # Initialize timing variable
     while True:
-        while not audio_queue.empty():
-            data = audio_queue.get()
+        # Capture Audio
+        print("recording audio")
+        audio_input = record_audio()
+        print("audio recorded\n")
 
-            # ✅ Start timing when speech processing begins
-            if start_time is None:
-                start_time = time.time()
+        # Transcribe and Detect Language
+        print("transcribing started")
+        result = model.transcribe(audio_input, fp16=torch.cuda.is_available())  # Use GPU if available
+        
+        detected_language = result['language']
+        transcribed_text = result['text']
+        print("transcribing finished\n")
+        
+        print(f"🗣️ Detected Language: {detected_language.upper()}")
+        print(f"📝 Transcription: {transcribed_text}")
+        
+        # Translate to English if needed
+        if detected_language != "en":
+            translated_text = model.transcribe(audio_input, task="translate")["text"]
+            print(f"🌍 Translated to English: {translated_text}")
 
-            if recognizer.AcceptWaveform(data):
-                result = json.loads(recognizer.Result())
-                transcription = result["text"]
-                
-                end_time = time.time()  # ✅ End timing after speech processing
-                elapsed_time = end_time - start_time
-                
-                print(f"⏱️ Transcription Time: {elapsed_time:.2f} sec")
-                print("📝 Transcribed Text:", transcription)
-
-                start_time = None  # Reset for the next speech input
+        print("-" * 50)
 
 except KeyboardInterrupt:
-    print("\n🛑 Stopping transcription...")
-
-finally:
+    print("\n🛑 Stopping...")
     stream.stop_stream()
     stream.close()
-    p.terminate()
+    audio.terminate()
