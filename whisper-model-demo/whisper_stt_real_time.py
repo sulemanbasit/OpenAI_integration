@@ -10,8 +10,8 @@ model = whisper.load_model("medium")
 # Audio Recording Parameters
 FORMAT = pyaudio.paInt16  # 16-bit audio
 CHANNELS = 1              # Mono audio
-RATE = 16000              # Sample rate (Whisper uses 16kHz)
-CHUNK = 1024              # Buffer size
+RATE = 8000              # Sample rate (Whisper uses 16kHz)
+CHUNK = 8192              # Buffer size
 
 # Initialize PyAudio
 audio = pyaudio.PyAudio()
@@ -29,7 +29,7 @@ def record_audio():
     start_time = time.time()
     
     # Capture for 3 seconds
-    while time.time() - start_time < 3:
+    while time.time() - start_time < 10:
         data = stream.read(CHUNK)
         frames.append(np.frombuffer(data, dtype=np.int16))
 
