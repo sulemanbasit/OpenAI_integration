@@ -4,6 +4,7 @@ import queue
 import torch
 import pyaudio
 import soundfile as sf
+import wave
 import numpy as np
 from transformers import AutoProcessor, AutoModelForAudioClassification, AutoModelForCTC, AutoFeatureExtractor
 
@@ -57,12 +58,16 @@ try:
     stream.close()
     p.terminate()
 
+    start_time = time.time()
     # ✅ Convert recorded data to NumPy array
     audio_data = b''.join(frames)
     audio_np = np.frombuffer(audio_data, dtype=np.int16)
 
     # ✅ Save as WAV file for processing
     sf.write(OUTPUT_FILENAME, audio_np, RATE)
+
+    # ✅ Time tracking: Start Language Detection
+    lid_time_start = time.time()
 
     # ✅ Load and process audio for Language Identification (LID)
     speech, rate = sf.read(OUTPUT_FILENAME)
@@ -75,7 +80,11 @@ try:
     detected_lang_id = torch.argmax(lid_outputs, dim=-1).item()
     detected_lang = lid_model.config.id2label[detected_lang_id]
 
-    print(f"🌍 Detected Language: {detected_lang.upper()}")
+    lid_time_end = time.time()
+    print(f"🌍 Detected Language: {detected_lang.upper()} (⏱️ {lid_time_end - lid_time_start:.2f} sec)")
+
+    # ✅ Time tracking: Start Transcription
+    stt_time_start = time.time()
 
     # ✅ Load the correct language adapter dynamically
     stt_processor.tokenizer.set_target_lang(detected_lang)
@@ -90,7 +99,15 @@ try:
     ids = torch.argmax(outputs, dim=-1)[0]
     transcription = stt_processor.decode(ids)
 
-    print(f"📝 Transcribed Text ({detected_lang.upper()}):", transcription)
+    stt_time_end = time.time()
+
+    print(f"📝 Transcribed Text ({detected_lang.upper()}): {transcription} (⏱️ {stt_time_end - stt_time_start:.2f} sec)")
+
+    # ✅ Print Summary
+    print("\n🔹 **Performance Summary** 🔹")
+    print(f"🌍 Language Detection Time: {lid_time_end - lid_time_start:.2f} sec")
+    print(f"📝 Speech-to-Text Time: {stt_time_end - stt_time_start:.2f} sec")
+    print(f"Total Execution Time: {stt_time_end - lid_time_start:.2f} sec")
 
 except KeyboardInterrupt:
     print("\n🛑 Stopping transcription...")
