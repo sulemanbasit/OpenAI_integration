@@ -11,7 +11,7 @@ model = whisper.load_model("small")
 FORMAT = pyaudio.paInt16  # 16-bit audio
 CHANNELS = 1
 RATE = 16000  # Whisper requires 16kHz
-CHUNK = 4096  # Process small chunks (Lower for low latency)
+CHUNK = 1024  # Process small chunks (Lower for low latency)
 BUFFER_SECONDS = 5  # Start transcription after 2 seconds
 BUFFER_SIZE = RATE * BUFFER_SECONDS  # Number of samples before processing
 
@@ -94,7 +94,7 @@ def transcribe_audio():
         # ✅ Summary of Results
         session_end_time = time.time()
         total_runtime = session_end_time - session_start_time
-        avg_detection = sum(detection_times) / len(detection_times) if detection_times else 0
+        # avg_detection = sum(detection_times) / len(detection_times) if detection_times else 0
         avg_transcription = sum(transcription_times) / len(transcription_times) if transcription_times else 0
         avg_translation = sum(translation_times) / len(translation_times) if translation_times else 0
         avg_recording = sum(recording_times) / len(recording_times) if recording_times else 0
@@ -106,8 +106,8 @@ def transcribe_audio():
 
         print("\n🔹 **Performance Metrics** 🔹")
         print(f"🎙️ Avg Recording Time: {avg_recording:.2f} sec")
-        print(f"🌍 Avg Language Detection Time: {avg_detection:.2f} sec")
-        print(f"📝 Avg Transcription Time: {avg_transcription:.2f} sec")
+        # print(f"🌍 Avg Language Detection Time: {avg_detection:.2f} sec")
+        print(f"📝 Avg Detection + Transcription Time: {avg_transcription:.2f} sec")
         print(f"🌍 Avg Translation Time: {avg_translation:.2f} sec")
         print(f"🚀 Total Execution Time: {total_runtime:.2f} sec")
 
