@@ -1,0 +1,8 @@
+whisper
+vosk
+pyaudio
+wave
+numpy
+deep-translator
+torch
+torchaudio
