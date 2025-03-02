@@ -1,1 +1,6 @@
-./vosk-model-demo/vosk-model-*
+vosk-model-demo/vosk-model-*
+vosk-model-demo/lang-id*
+tmp*
+temp*
+model_checkpoints
+whisper_checkpoints
