@@ -3,46 +3,13 @@ import pyaudio
 import wave
 import numpy as np
 import time
-
-# Language map from whisper probability key
-LANGUAGE_MAP = {
-    "af": "Afrikaans", "am": "Amharic", "ar": "Arabic", "as": "Assamese", "az": "Azerbaijani",
-    "ba": "Bashkir", "be": "Belarusian", "bg": "Bulgarian", "bn": "Bengali", "bo": "Tibetan",
-    "br": "Breton", "bs": "Bosnian", "ca": "Catalan", "cs": "Czech", "cy": "Welsh",
-    "da": "Danish", "de": "German", "el": "Greek", "en": "English", "eo": "Esperanto",
-    "es": "Spanish", "et": "Estonian", "eu": "Basque", "fa": "Persian", "fi": "Finnish",
-    "fo": "Faroese", "fr": "French", "gl": "Galician", "gu": "Gujarati", "ha": "Hausa",
-    "he": "Hebrew", "hi": "Hindi", "hr": "Croatian", "ht": "Haitian Creole", "hu": "Hungarian",
-    "hy": "Armenian", "id": "Indonesian", "is": "Icelandic", "it": "Italian", "ja": "Japanese",
-    "jw": "Javanese", "ka": "Georgian", "kk": "Kazakh", "km": "Khmer", "kn": "Kannada",
-    "ko": "Korean", "la": "Latin", "lb": "Luxembourgish", "lo": "Lao", "lt": "Lithuanian",
-    "lv": "Latvian", "mg": "Malagasy", "mi": "Maori", "mk": "Macedonian", "ml": "Malayalam",
-    "mn": "Mongolian", "mr": "Marathi", "ms": "Malay", "mt": "Maltese", "my": "Burmese",
-    "ne": "Nepali", "nl": "Dutch", "nn": "Norwegian Nynorsk", "no": "Norwegian", "oc": "Occitan",
-    "pa": "Punjabi", "pl": "Polish", "ps": "Pashto", "pt": "Portuguese", "ro": "Romanian",
-    "ru": "Russian", "sd": "Sindhi", "si": "Sinhala", "sk": "Slovak", "sl": "Slovenian",
-    "sn": "Shona", "so": "Somali", "sq": "Albanian", "sr": "Serbian", "su": "Sundanese",
-    "sv": "Swedish", "sw": "Swahili", "ta": "Tamil", "te": "Telugu", "th": "Thai",
-    "tl": "Tagalog", "tr": "Turkish", "tt": "Tatar", "uk": "Ukrainian", "ur": "Urdu",
-    "uz": "Uzbek", "vi": "Vietnamese", "yi": "Yiddish", "yo": "Yoruba", "zh": "Chinese"
-}
-
-# ✅ Load Whisper Model (Choose small/tiny for speed)
-model = whisper.load_model("small")
-
-# ✅ Audio Recording Parameters
-FORMAT = pyaudio.paInt16
-CHANNELS = 1
-RATE = 16000  # Whisper works best with 16kHz
-CHUNK = 1024
-SILENCE_THRESHOLD = 500  # Adjust based on mic sensitivity
-SILENCE_TIME = 1  # Stop recording after 1 second of silence
+import configuration as config # import the configuration.py file which has all the parameters and mapping
 
 def record_audio():
     """Records audio until 1 second of silence is detected."""
     p = pyaudio.PyAudio()
-    stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, 
-                    input=True, frames_per_buffer=CHUNK)
+    stream = p.open(format=config.FORMAT, channels=config.CHANNELS, rate=config.RATE, 
+                    input=True, frames_per_buffer=config.CHUNK)
 
     print("🎙️ Speak now... (Press Ctrl+C to stop)")
     
@@ -51,20 +18,20 @@ def record_audio():
     recording = True
 
     while recording:
-        data = stream.read(CHUNK)
+        data = stream.read(config.CHUNK)
         frames.append(data)
 
         # Convert audio chunk to NumPy array for silence detection
         audio_np = np.frombuffer(data, dtype=np.int16)
         volume = np.abs(audio_np).mean()
 
-        if volume < SILENCE_THRESHOLD:
+        if volume < config.SILENCE_THRESHOLD:
             silent_chunks += 1
         else:
             silent_chunks = 0  # Reset silence counter if speech detected
 
         # Stop if silence lasts more than `SILENCE_TIME`
-        if silent_chunks > (SILENCE_TIME * RATE / CHUNK):
+        if silent_chunks > (config.SILENCE_TIME * config.RATE / config.CHUNK):
             print("🛑 Silence detected. Stopping recording.")
             break
 
@@ -76,9 +43,9 @@ def record_audio():
     # Save audio as a WAV file
     temp_wav = "temp_audio.wav"
     wf = wave.open(temp_wav, 'wb')
-    wf.setnchannels(CHANNELS)
-    wf.setsampwidth(p.get_sample_size(FORMAT))
-    wf.setframerate(RATE)
+    wf.setnchannels(config.CHANNELS)
+    wf.setsampwidth(p.get_sample_size(config.FORMAT))
+    wf.setframerate(config.RATE)
     wf.writeframes(b''.join(frames))
     wf.close()
 
@@ -96,7 +63,7 @@ def detect_language(audio_file):
     audio = whisper.pad_or_trim(audio)
 
     # ✅ Convert to Mel Spectrogram
-    mel = whisper.log_mel_spectrogram(audio).to(model.device)
+    mel = whisper.log_mel_spectrogram(audio).to(config.model.device)
 
     # ✅ Ensure Proper Shape: (1, 80, 3000)
     mel = mel.unsqueeze(0)  # Add batch dimension
@@ -105,11 +72,11 @@ def detect_language(audio_file):
     print(f"🔍 Fixed Mel Shape: {mel.shape}")  # Should be (1, 80, 3000)
 
     # ✅ Detect Language
-    _, probs = model.detect_language(mel)
+    _, probs = config.model.detect_language(mel)
     probs_dict = probs[0]  # Extract dictionary from list
     detected_language = max(probs_dict, key=probs_dict.get)  # ✅ Correct
 
-    full_language_name = LANGUAGE_MAP.get(detected_language, detected_language)  # Fallback if not in dict
+    full_language_name = config.LANGUAGE_MAP.get(detected_language, detected_language)  # Fallback if not in dict
     print(f"🌍 Detected Language: {full_language_name}")
 
     time.sleep(2) # stop for 2 seconds
