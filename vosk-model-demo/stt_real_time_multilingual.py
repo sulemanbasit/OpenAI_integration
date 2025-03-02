@@ -5,6 +5,7 @@ import numpy as np
 import time
 import threading
 from vosk import Model, KaldiRecognizer
+from deep_translator import GoogleTranslator # online translator
 import configuration as config # import the configuration.py file which has all the parameters and mapping
 
 # ✅ Shared Variables
@@ -170,6 +171,11 @@ def transcribe():
         full_transcript_text = " ".join([eval(r)["text"] for r in transcription_result if r.strip()])
 
         print(f"📝 Final Transcription: {full_transcript_text}")  # ✅ Display Full Text
+
+        # ✅ Translate if not English
+        if language_state != "en":
+            translated_text = GoogleTranslator(source=language_state, target="en").translate(full_transcript_text)
+            print(f"🌍 Translated to English: {translated_text}")
 
         end_time = time.time()  # ✅ End Timer
         print(f"⏱️ Transcription Time: {end_time - start_time:.2f} sec")  # ✅ Print Execution Time

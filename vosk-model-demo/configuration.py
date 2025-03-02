@@ -30,20 +30,21 @@ LANGUAGE_MAP = {
 model = whisper.load_model("small")
 
 # ✅ Vosk Model Paths (Downloaded & Extracted)
+ABSOLUTE_PATH = "/Users/dianbasit/Library/CloudStorage/Dropbox/My Mac (Dians-MacBook-Air.local)/Documents/Upwork_Project/OpenAI_integration/vosk-model-demo"
 VOSK_MODELS = {
-    "en": "vosk-model-en-us-0.22",
-    "fr": "vosk-model-fr-0.22",
-    "es": "vosk-model-es-0.42",
-    "de": "vosk-model-de-0.21",
-    "it": "vosk-model-it-0.22",
-    "ru": "vosk-model-ru-0.42",
-    "pt": "vosk-model-pt-fb-v0.1.1-20220516_2113",
-    "zh": "vosk-model-cn-0.22",
-    "ar": "vosk-model-ar-0.22-linto-1.1.0",
-    "fa": "vosk-model-fa-0.42",
-    "hi": "vosk-model-hi-0.22",
-    "ja": "vosk-model-ja-0.22",
-    "uk": "vosk-model-uk-v3-lgraph",
+    "en": f"{ABSOLUTE_PATH}/vosk-model-en-us-0.22",
+    "fr": f"{ABSOLUTE_PATH}/vosk-model-fr-0.22",
+    "es": f"{ABSOLUTE_PATH}/vosk-model-es-0.42",
+    "de": f"{ABSOLUTE_PATH}/vosk-model-de-0.21",
+    "it": f"{ABSOLUTE_PATH}/vosk-model-it-0.22",
+    "ru": f"{ABSOLUTE_PATH}/vosk-model-ru-0.42",
+    "pt": f"{ABSOLUTE_PATH}/vosk-model-pt-fb-v0.1.1-20220516_2113",
+    "zh": f"{ABSOLUTE_PATH}/vosk-model-cn-0.22",
+    "ar": f"{ABSOLUTE_PATH}/vosk-model-ar-0.22-linto-1.1.0",
+    "fa": f"{ABSOLUTE_PATH}/vosk-model-fa-0.42",
+    "hi": f"{ABSOLUTE_PATH}/vosk-model-hi-0.22",
+    "ja": f"{ABSOLUTE_PATH}/vosk-model-ja-0.22",
+    "uk": f"{ABSOLUTE_PATH}/vosk-model-uk-v3-lgraph",
 }
 
 # ✅ Audio Recording Parameters
