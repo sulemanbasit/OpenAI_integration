@@ -11,6 +11,7 @@ import configuration as config # import the configuration.py file which has all 
 language_state = ""  # Holds detected language
 language_lock = threading.Lock()  # Lock for thread safety
 audio_file = "temp_audio.wav"  # Temporary WAV file
+transcribe_restart_flag = threading.Event()  # ✅ Flag to restart transcription
 
 # Records real-time audio and if there's a pause for {SILENCE_TIME} seconds then write it into WAV file
 def record_audio():
@@ -40,7 +41,7 @@ def record_audio():
 
         # Stop if silence lasts more than `SILENCE_TIME`
         if silent_chunks > (config.SILENCE_TIME * config.RATE / config.CHUNK):
-            print("🛑 Silence detected. Stopping recording.")
+            print("🛑 Silence detected. Stopping recording.\n\n")
             break
 
     # Stop & close the stream
@@ -94,6 +95,7 @@ def detect_language(audio_file):
     with language_lock:
         if detected_language != language_state:
             language_state = detected_language  # Update to new detected language
+            transcribe_restart_flag.set()  # ✅ Trigger restart of transcription
             print(f"🌍 Updated Language: {full_language_name} ({detected_language})")
         else:
             print(f"🌍 Language remains the same: {full_language_name} ({detected_language})")
@@ -110,56 +112,71 @@ last_language = None
 # Function to Transcribe Audio using Vosk for faster time
 def transcribe():
     """Transcribes audio using the appropriate Vosk model."""
-    global language_state, last_model, last_language
+    global language_state, last_model, last_language, transcribe_restart_flag
 
     # Wait until language is detected
     while not language_state:
         print("⏳ Waiting for language detection...")
         time.sleep(1)  # Small wait loop
 
-    start_time = time.time()  # ✅ Start Timer
+    while True:  # Keep checking for language change
+        start_time = time.time()  # ✅ Start Timer
 
-    # ✅ Use cached model if language hasn't changed
-    if language_state == last_language and last_model is not None:
-        print(f"♻️ Using Cached Model: {last_language}")
-        model = last_model
-    else:
-        # ✅ Load new model if language changed
-        lang_model = config.VOSK_MODELS.get(language_state, config.VOSK_MODELS["en"])
-        print(f"📝 Loading New Vosk Model: {lang_model} for transcription")
-        print("Please wait, this might take some time...")
+        # ✅ If flag is set, restart transcription
+        if transcribe_restart_flag.is_set():
+            print("🔄 Language changed. Restarting transcription...\n")
+            transcribe_restart_flag.clear()  # ✅ Reset flag
+            continue  # Restart loop
 
-        model = Model(lang_model)  # ✅ Load new model
-        last_model = model  # ✅ Cache new model
-        last_language = language_state  # ✅ Update last language
+        # ✅ Use cached model if language hasn't changed
+        if language_state == last_language and last_model is not None:
+            print(f"♻️ Using Cached Model: {last_language}")
+            model = last_model
+        else:
+            # ✅ Load new model if language changed
+            lang_model = config.VOSK_MODELS.get(language_state, config.VOSK_MODELS["en"])
+            print(f"📝 Loading New Vosk Model: {lang_model} for transcription")
+            print("Please wait, this might take some time...")
 
-    recognizer = KaldiRecognizer(model, 16000)
+            model = Model(lang_model)  # ✅ Load new model
+            last_model = model  # ✅ Cache new model
+            last_language = language_state  # ✅ Update last language
 
-    transcription_result = []  # ✅ Store transcription text
+        recognizer = KaldiRecognizer(model, 16000)
 
-    with wave.open(audio_file, "rb") as wf:
-        while True:
-            data = wf.readframes(4000)
-            if len(data) == 0:
-                break
-            if recognizer.AcceptWaveform(data):  # ✅ When full sentence detected
-                result = recognizer.Result()
-                # print(f"✅ Partial Transcription: {result}")  # Debugging
-                transcription_result.append(result)
+        transcription_result = []  # ✅ Store transcription text
 
-    # ✅ Handle Final Transcription
-    final_transcription = recognizer.FinalResult()
-    if final_transcription.strip():  # ✅ Ensure it's not empty
-        transcription_result.append(final_transcription)
+        with wave.open(audio_file, "rb") as wf:
+            while True:  # ✅ Read audio data from file
+                data = wf.readframes(4000)
+                if len(data) == 0:
+                    break
+                if recognizer.AcceptWaveform(data):  # ✅ When full sentence detected
+                    result = recognizer.Result()
+                    transcription_result.append(result)
 
-    # ✅ Join all results together
-    full_transcript_text = " ".join([eval(r)["text"] for r in transcription_result if r.strip()])
+                # ✅ If flag is raised during processing, restart immediately
+                if transcribe_restart_flag.is_set():
+                    print("🔄 Language changed mid-transcription. Restarting...\n")
+                    transcribe_restart_flag.clear()
+                    break  # Stop current transcription & restart
 
-    print(f"📝 Final Transcription: {full_transcript_text}")  # ✅ Display Full Text
+        # ✅ Handle Final Transcription
+        final_transcription = recognizer.FinalResult()
+        if final_transcription.strip():  # ✅ Ensure it's not empty
+            transcription_result.append(final_transcription)
 
+        # ✅ Join all results together
+        full_transcript_text = " ".join([eval(r)["text"] for r in transcription_result if r.strip()])
 
-    end_time = time.time()  # ✅ End Timer
-    print(f"⏱️ Transcription Time: {end_time - start_time:.2f} sec")  # ✅ Print Execution Time
+        print(f"📝 Final Transcription: {full_transcript_text}")  # ✅ Display Full Text
+
+        end_time = time.time()  # ✅ End Timer
+        print(f"⏱️ Transcription Time: {end_time - start_time:.2f} sec")  # ✅ Print Execution Time
+
+        # ✅ If no flag is raised, transcription is complete
+        if not transcribe_restart_flag.is_set():
+            break  # ✅ Exit loop once transcription is done
 
 # ✅ Main Execution Loop
 try:
