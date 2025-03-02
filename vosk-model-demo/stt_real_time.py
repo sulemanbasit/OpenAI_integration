@@ -6,6 +6,19 @@ import numpy as np
 import pyaudio
 from vosk import Model, KaldiRecognizer
 from deep_translator import GoogleTranslator
+from openai import OpenAI
+from dotenv import load_dotenv # for securing a key
+from pathlib import Path
+
+# ✅ Get the absolute path of the parent directory
+BASE_DIR = Path(__file__).resolve().parent.parent # takes one folder up to access the .env file
+
+# ✅ Load .env file from the parent directory
+env_path = BASE_DIR / ".env"
+load_dotenv(dotenv_path=env_path)
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+print(OPENAI_API_KEY)
 
 # ✅ Audio Configuration
 FORMAT = pyaudio.paInt16
@@ -17,9 +30,9 @@ SILENCE_TIME = 2  # Stop recording after silence for 2 sec
 
 # ✅ Vosk Model Path (English by Default)
 ABSOLUTE_PATH = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = f"{ABSOLUTE_PATH}/vosk-model-en-us-0.22" # 1.9GB EN
+# MODEL_PATH = f"{ABSOLUTE_PATH}/vosk-model-en-us-0.22" # 1.9GB EN
 # MODEL_PATH = f"{ABSOLUTE_PATH}/vosk-model-fr-0.22" # 1.9GB FR
-# MODEL_PATH = f"{ABSOLUTE_PATH}/vosk-model-ru-0.42" # 1.9GB RU
+MODEL_PATH = f"{ABSOLUTE_PATH}/vosk-model-ru-0.42" # 1.9GB RU
 
 if not os.path.exists(MODEL_PATH):
     print(f"❌ Error: Vosk model not found at {MODEL_PATH}")
@@ -89,16 +102,39 @@ def transcribe(audio_file):
             
             translated_text = GoogleTranslator(source="auto", target="en").translate(transcription)
 
+            print(f"\n📝 Transcribed: {transcription}")
+            print(f"🌍 Translated to English: {translated_text}")
+
+            # ✅ Send translated text to OpenAI and get a response
+            ai_response = get_openai_response(translated_text)
+            print(f"🤖 OpenAI Response: {ai_response}")
+
             end_time = time.time()  # ✅ End timing
             execution_time = round(end_time - start_time, 2)
 
-            print(f"\n📝 Transcribed: {transcription}")
-            print(f"🌍 Translated to English: {translated_text}")
             print(f"⏱️ Transcription Time: {execution_time} sec\n")
         else:
             print("⚠️ No speech detected.\n")
     else:
         print("⚠️ Could not process speech.\n")
+
+client = OpenAI(
+  api_key=OPENAI_API_KEY
+)
+
+def get_openai_response(text):
+    """Sends transcribed text to OpenAI GPT-4o-mini and returns the AI-generated response."""
+    try:
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",  # ✅ Using "gpt-4o-mini" for fast and cost-effective responses
+            store=True,
+            messages=[{"role": "user", "content": text}]
+        )
+
+        return completion.choices[0].message.content.strip()
+
+    except Exception as e:
+        return f"⚠️ OpenAI API Error: {str(e)}"
 
 # ✅ Run the Full Pipeline
 while True:

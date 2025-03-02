@@ -4,3 +4,4 @@ tmp*
 temp*
 model_checkpoints
 whisper_checkpoints
+.env

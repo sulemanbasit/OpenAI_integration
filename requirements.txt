@@ -6,3 +6,5 @@ numpy
 deep-translator
 torch
 torchaudio
+openai
+python-dotenv
