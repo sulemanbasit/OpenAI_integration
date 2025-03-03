@@ -27,7 +27,7 @@ CHANNELS = 1
 RATE = 16000  # Whisper expects 16kHz
 CHUNK = 1024  # Buffer size (Adjust for latency)
 SILENCE_THRESHOLD = 500  # Volume threshold for silence detection
-SILENCE_TIME = 2  # Stop recording after 2 seconds of silence
+SILENCE_TIME = 4  # Stop recording after 4 seconds of silence
 
 # ✅ Initialize PyAudio
 p = pyaudio.PyAudio()
